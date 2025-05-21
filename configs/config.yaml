@@ -1,0 +1,34 @@
+# --- General ---
+bs: 10
+epochs: 100
+?debug: false  # tip: use "--debug" on the command line to set this
+sample_temperature: 0.8
+
+# --- Logging ---
+logger: console
+logdir: logs
+run_name: test
+experiment: transformer
+
+# --- Dataset ---
+split_percentages: [0.8, 0.1, 0.1]
+dataset:
+  _target_: dataset.dataset.TinyLanguageDataset
+  # txt_path: "data/frankenstien.txt"
+  txt_path: "data/gutenberg_top100_cleaned/"
+  seq_len: 300
+  stride: 300
+
+# --- Model ---
+model:
+  _target_: models.transformer.BabyGPT
+  seq_len: 15
+  n_layers: 2
+  n_heads: 4
+  embedding_dim: 64
+  dim_ff: 256
+
+# --- Optimizer ---
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: 0.001

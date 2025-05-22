@@ -28,7 +28,6 @@ class LanguageRunner:
         is_train = self.optimizer is not None
         self.model.train() if is_train else self.model.eval()
 
-
         desc = "loss: _"
         with tqdm(total=len(self.loader), desc=desc) as pbar:
             cum_loss, batches = 0.0, 0
@@ -44,7 +43,9 @@ class LanguageRunner:
                     loss.backward()
                     self.optimizer.step()
 
-                cum_loss += loss.item()
+                # Detach the loss to avoid memory leaks
+                loss = float(loss.item())
+                cum_loss += loss
                 losses.append(loss)
                 batches += 1
 

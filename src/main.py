@@ -1,7 +1,8 @@
 import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
 import skeletonkey as sk
-import torch.nn as nn
+import wandb
 
 from pathlib import Path
 from typing import Literal
@@ -28,6 +29,8 @@ def main(cfg: sk.Config):
         cfg.model,
         vocab_size=dataset.tokenizer.vocab_size
     )
+    if cfg.logger == "wandb":
+        wandb.watch(model, log="all", log_freq=100)
 
     # make the dataset small if we are debugging
     if sum(cfg.split_percentages) != 1.0:
@@ -39,7 +42,8 @@ def main(cfg: sk.Config):
             total = sum(exps)
             return [e / total for e in exps]
 
-        logger.warn("Split percentages do not sum to one, softmaxing them, which may lead to unintended results...")
+        logger.warn(
+            "Split percentages do not sum to one, softmaxing them, which may lead to unintended results...")
         cfg.split_percentages = softmax(cfg.split_percentages)
 
     if cfg.debug:
@@ -94,14 +98,14 @@ def main(cfg: sk.Config):
         dev_losses.extend(_dev_losses)
         logger.info(f"{mean_dev_loss=}")
 
-
         logger.log_metrics({
             "mean_train_loss": mean_train_loss,
             "mean_dev_loss": mean_dev_loss,
         })
 
         if mean_dev_loss < best_mean_dev_loss:
-            logger.info(f"New best dev loss!!! ({best_mean_dev_loss} -> {mean_dev_loss})")
+            logger.info(
+                f"New best dev loss!!! ({best_mean_dev_loss} -> {mean_dev_loss})")
             best_mean_dev_loss = mean_dev_loss
 
         sample = generate(

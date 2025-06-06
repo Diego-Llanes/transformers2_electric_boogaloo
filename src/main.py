@@ -15,6 +15,12 @@ from utils import TASK_TO_OBJECTIVE_FN
 from viz import generate
 from logger import LoggerProtocol, get_logger
 
+import sys
+
+# Make things print faster
+STD_OUT = sys.stdout
+sys.stdout = sys.stderr
+
 
 @sk.unlock(str(Path(__file__).parent.parent / "configs" / "config.yaml"))
 def main(cfg: sk.Config):
@@ -65,8 +71,6 @@ def main(cfg: sk.Config):
 
     optimizer = sk.instantiate(cfg.optimizer, params=model.parameters())
     scheduler = ReduceLROnPlateau(optimizer, 'min')
-
-
 
     device = torch.device("cuda" if torch.cuda.is_available(
     ) else "mps" if torch.backends.mps.is_available() else "cpu")
@@ -145,7 +149,11 @@ def main(cfg: sk.Config):
     dev_losses: list[float]
 
     for epoch in range(1, cfg.epochs):
-        terminal_width = os.get_terminal_size().columns
+        try:
+            terminal_width = os.get_terminal_size().columns
+        except OSError:
+            terminal_width = 80
+
         print(f"{f' Epoch {epoch} ':-^{terminal_width}}")
 
         mean_train_loss, _train_losses = train_runner.run_epoch()
@@ -180,7 +188,8 @@ def main(cfg: sk.Config):
             temperature=cfg.sample_temperature,
         )
         print(f"Sample generation: {sample}")
-        logger.log_artifact(f"[EPOCH {epoch}]:\n{sample}\n", save_name="samples.txt")
+        logger.log_artifact(
+            f"[EPOCH {epoch}]:\n{sample}\n", save_name="samples.txt")
 
         print(f"{f'':-^{terminal_width}}\n")
 

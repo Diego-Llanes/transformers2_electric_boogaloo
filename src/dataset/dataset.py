@@ -52,11 +52,10 @@ class TinyLanguageDataset(Dataset):
 
     def split(self, ps: list[float]) -> list[TinyLanguageDataset]:
         total = len(self.start_positions)
-        ratios = [p/sum(ps) for p in ps]
-        cuts = [0] + [int(sum(ratios[:i])*total)
-                      for i in range(1, len(ratios))] + [total]
+        cuts = [0] + [int(sum(ps[:i])*total)
+                      for i in range(1, len(ps))] + [total]
         subsets = []
-        for i in range(len(ratios)):
+        for i in range(len(ps)):
             sub = object.__new__(TinyLanguageDataset)
             sub.seq_len = self.seq_len
             sub.stride = self.stride

@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader, Dataset
 import skeletonkey as sk
 import wandb
@@ -9,7 +10,7 @@ from typing import Literal
 import math
 import os
 
-from runner import LanguageRunner
+from runner import LanguageRunner, LevenshteinRunner, InsertionRunner, CorrectionRunner
 from utils import TASK_TO_OBJECTIVE_FN
 from viz import generate
 from logger import LoggerProtocol, get_logger
@@ -25,16 +26,20 @@ def main(cfg: sk.Config):
     task_type: Literal['classification', 'regression'] = dataset.task_type
     objective_fn: callable = TASK_TO_OBJECTIVE_FN[task_type]
 
+    # Instantiate model: pass mask_token_id for LevenshteinTransformer
+    model_kwargs = {'vocab_size': dataset.tokenizer.vocab_size}
+    if 'LevenshteinTransformer' in cfg.model._target_:
+        model_kwargs['mask_token_id'] = dataset.tokenizer.mask_token_id
     model: nn.Module = sk.instantiate(
         cfg.model,
-        vocab_size=dataset.tokenizer.vocab_size
+        **model_kwargs
     )
+
     if cfg.logger == "wandb":
         wandb.watch(model, log="all", log_freq=100)
 
     # make the dataset small if we are debugging
     if sum(cfg.split_percentages) != 1.0:
-
         def softmax(x: list[float]) -> list[float]:
             # Shift by max for numerical stability
             m = max(x)
@@ -42,12 +47,12 @@ def main(cfg: sk.Config):
             total = sum(exps)
             return [e / total for e in exps]
 
-        logger.warn(
+        logger.warning(
             "Split percentages do not sum to one, softmaxing them, which may lead to unintended results...")
         cfg.split_percentages = softmax(cfg.split_percentages)
 
     if cfg.debug:
-        logger.warn("In debug mode so, the datasets sizes are smaller")
+        logger.warning("In debug mode so, the datasets sizes are smaller")
         cfg.split_percentages = [x * 0.01 for x in cfg.split_percentages]
 
     train_ds, dev_ds, test_ds = dataset.split(ps=cfg.split_percentages)
@@ -59,23 +64,80 @@ def main(cfg: sk.Config):
     )
 
     optimizer = sk.instantiate(cfg.optimizer, params=model.parameters())
+    scheduler = ReduceLROnPlateau(optimizer, 'min')
+
+
 
     device = torch.device("cuda" if torch.cuda.is_available(
     ) else "mps" if torch.backends.mps.is_available() else "cpu")
-    train_runner = LanguageRunner(
-        model=model,
-        optimizer=optimizer,
-        objective_fn=objective_fn,
-        dataloader=train_dl,
-        device=device,
-    )
-    dev_runner = LanguageRunner(
-        model=model,
-        optimizer=None,
-        objective_fn=objective_fn,
-        dataloader=dev_dl,
-        device=device,
-    )
+
+    if 'LevenshteinTransformer' in cfg.model._target_:
+        train_runner = LevenshteinRunner(
+            model=model,
+            objective_fn=None,
+            dataloader=train_dl,
+            optimizer=optimizer,
+            device=device,
+        )
+        dev_runner = LevenshteinRunner(
+            model=model,
+            objective_fn=None,
+            dataloader=dev_dl,
+            optimizer=None,
+            device=device,
+        )
+    elif 'InsertionTransformer' in cfg.model._target_:
+        mask_id = dataset.tokenizer.mask_token_id
+        train_runner = InsertionRunner(
+            model=model,
+            dataloader=train_dl,
+            optimizer=optimizer,
+            mask_token_id=mask_id,
+            device=device,
+        )
+        dev_runner = InsertionRunner(
+            model=model,
+            dataloader=dev_dl,
+            optimizer=None,
+            mask_token_id=mask_id,
+            device=device,
+        )
+    elif 'CorrectionTransformer' in cfg.model._target_:
+        mask_id = dataset.tokenizer.mask_token_id
+        corr_prob = cfg.corruption_prob
+        train_runner = CorrectionRunner(
+            model=model,
+            dataloader=train_dl,
+            optimizer=optimizer,
+            seq_len=dataset.seq_len,
+            corruption_prob=corr_prob,
+            mask_token_id=mask_id,
+            device=device,
+        )
+        dev_runner = CorrectionRunner(
+            model=model,
+            dataloader=dev_dl,
+            optimizer=None,
+            seq_len=dataset.seq_len,
+            corruption_prob=corr_prob,
+            mask_token_id=mask_id,
+            device=device,
+        )
+    else:
+        train_runner = LanguageRunner(
+            model=model,
+            optimizer=optimizer,
+            objective_fn=objective_fn,
+            dataloader=train_dl,
+            device=device,
+        )
+        dev_runner = LanguageRunner(
+            model=model,
+            optimizer=None,
+            objective_fn=objective_fn,
+            dataloader=dev_dl,
+            device=device,
+        )
 
     best_mean_dev_loss: float = float('inf')
     train_losses, dev_losses = [], []
@@ -97,6 +159,7 @@ def main(cfg: sk.Config):
         _dev_losses: list[float]
         dev_losses.extend(_dev_losses)
         logger.info(f"{mean_dev_loss=}")
+        scheduler.step(mean_dev_loss)
 
         logger.log_metrics({
             "mean_train_loss": mean_train_loss,
@@ -112,11 +175,13 @@ def main(cfg: sk.Config):
             model,
             dataset.tokenizer,
             device,
-            prompt="Once upon a time,",
+            prompt="Down in the depths of",
             max_length=100,
             temperature=cfg.sample_temperature,
         )
         print(f"Sample generation: {sample}")
+        logger.log_artifact(f"[EPOCH {epoch}]:\n{sample}\n", save_name="samples.txt")
+
         print(f"{f'':-^{terminal_width}}\n")
 
 

@@ -3,30 +3,50 @@ bs: 10
 epochs: 100
 ?debug: false  # tip: use "--debug" on the command line to set this
 sample_temperature: 0.8
+corruption_prob: 0.15
 
 # --- Logging ---
 logger: console
 logdir: logs
-run_name: big_data_transformer
+run_name: debug
 experiment: transformer
 
 # --- Dataset ---
 split_percentages: [0.8, 0.1, 0.1]
 dataset:
   _target_: dataset.dataset.TinyLanguageDataset
-  # txt_path: "data/frankenstien.txt"
-  txt_path: "data/gutenberg_top100_cleaned/"
+  txt_path: "data/frankenstien.txt"
+  # txt_path: "data/gutenberg_top100_cleaned/"
   seq_len: 300
   stride: 20
 
 # --- Model ---
+# model:
+#   # _target_: models.insertion_transformer.InsertionTransformer
+#   _target_: models.levenshtein_transformer.LevenshteinTransformer
+#   # _target_: models.transformer.BabyGPT
+#   seq_len: 300
+#   n_layers: 2
+#   n_heads: 4
+#   embedding_dim: 64
+#   dim_ff: 256
+#   dropout: 0.1
+
 model:
-  _target_: models.transformer.BabyGPT
+  _target_: models.correction_transformer.CorrectionTransformer
+  vocab_size: 30000        # (will be overridden by sk.instantiate)
   seq_len: 300
-  n_layers: 2
-  n_heads: 4
-  embedding_dim: 64
-  dim_ff: 256
+  cls_n_layers: 2
+  cls_n_heads: 2
+  cls_emb_dim: 64
+  cls_ff_dim: 128
+  rep_n_layers: 4
+  rep_n_heads: 8
+  rep_emb_dim: 256
+  rep_ff_dim: 512
+  dropout: 0.1
+  mask_token_id: 103      # (BERT’s [MASK] id; or tokenizer.mask_token_id)
+
 
 # --- Optimizer ---
 optimizer:

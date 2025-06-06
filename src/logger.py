@@ -92,8 +92,8 @@ class ConsoleWrapper(_DelegatingLogger, LoggerProtocol):
             yaml.dump(params, f)
         self._logger.info("Parameters logged")
 
-    def log_artifact(self, artifact: str) -> None:
-        with open(f"{self.log_dir}/artifact.txt", "w") as f:
+    def log_artifact(self, artifact: str, save_name='artifact.txt') -> None:
+        with open(f"{self.log_dir}/{save_name}", "a") as f:
             f.write(artifact)
         self._logger.info("Artifact logged: %s", type(artifact))
 
@@ -210,8 +210,8 @@ def get_logger(config: sk.Config,) -> LoggerProtocol:
     c_handler.setLevel(logging.DEBUG)
     logger.addHandler(c_handler)
 
-    if config.debug:
-        return DebugWrapper(logger)
+    # if config.debug:
+    #     return DebugWrapper(logger)
 
     match config.logger:
         case "tensorboard":

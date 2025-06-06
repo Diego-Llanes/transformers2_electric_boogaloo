@@ -8,11 +8,7 @@ gpus_minimum_memory=10G
 
 output=/research/hutchinson/workspace/fettigj/transformers2_electric_boogaloo/logs/condor_logs/out.$(args).$(procid).txt
 error =/research/hutchinson/workspace/fettigj/transformers2_electric_boogaloo/logs/condor_logs/err.$(args).$(procid).txt
-log=logs/condor_logs/condor.log
+log   =/research/hutchinson/workspace/fettigj/transformers2_electric_boogaloo/logs/condor_logs/condor.log
 
-# batch_name=$(arguments)
 max_idle=20
-# queue arguments from [:] /research/hutchinson/workspace/fettigj/transformers2_electric_boogaloo/jobs/args.txt
-
-# output=logs/condor_logs/out.$(clusterid).$(procid).txt
-# error =logs/condor_logs/err.$(clusterid).$(procid).txt
+queue 20

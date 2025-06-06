@@ -1,3 +1,21 @@
+# `uv run src/main.py --profiles lev_transformer`
+# --- Profiles ---
+profiles:
+  transformer:
+    model: models/transformer.yaml
+  gru:
+    model: models/gru.yaml
+  lstm:
+    model: models/lstm.yaml
+  rnn:
+    model: models/rnn.yaml
+  ins_transformer:
+    model: models/ins_transformer.yaml
+  lev_transformer:
+    model: models/lev_transformer.yaml
+  corr_transformer:
+    model: models/corr_transformer.yaml
+
 # --- General ---
 bs: 10
 epochs: 100
@@ -31,22 +49,6 @@ dataset:
 #   embedding_dim: 64
 #   dim_ff: 256
 #   dropout: 0.1
-
-model:
-  _target_: models.correction_transformer.CorrectionTransformer
-  vocab_size: 30000        # (will be overridden by sk.instantiate)
-  seq_len: 300
-  cls_n_layers: 2
-  cls_n_heads: 2
-  cls_emb_dim: 64
-  cls_ff_dim: 128
-  rep_n_layers: 4
-  rep_n_heads: 8
-  rep_emb_dim: 256
-  rep_ff_dim: 512
-  dropout: 0.1
-  mask_token_id: 103      # (BERT’s [MASK] id; or tokenizer.mask_token_id)
-
 
 # --- Optimizer ---
 optimizer:

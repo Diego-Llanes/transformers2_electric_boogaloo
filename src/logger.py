@@ -95,7 +95,7 @@ class ConsoleWrapper(_DelegatingLogger, LoggerProtocol):
     def log_artifact(self, artifact: str, save_name='artifact.txt') -> None:
         with open(f"{self.log_dir}/{save_name}", "a") as f:
             f.write(artifact)
-        self._logger.info("Artifact logged: %s", type(artifact))
+        self._logger.info(f"Artifact logged: '{type(artifact)}' saved to '{save_name}'")
 
     def log_figure(self, figure, name: str) -> None:
         if not (self.log_dir / "figs").exists():
@@ -210,7 +210,9 @@ def get_logger(config: sk.Config,) -> LoggerProtocol:
     c_handler.setLevel(logging.DEBUG)
     logger.addHandler(c_handler)
 
-    # if config.debug:
+    if config.debug:
+        config.run_name = 'debug'
+        return ConsoleWrapper(logger, config.logdir, config.run_name)
     #     return DebugWrapper(logger)
 
     match config.logger:

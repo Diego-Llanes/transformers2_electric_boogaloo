@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Literal
 import math
 import os
+import json
 
 from runner import LanguageRunner, LevenshteinRunner, InsertionRunner, CorrectionRunner
 from utils import TASK_TO_OBJECTIVE_FN
@@ -147,6 +148,7 @@ def main(cfg: sk.Config):
     train_losses, dev_losses = [], []
     train_losses: list[float]
     dev_losses: list[float]
+    bad_epochs = 0
 
     for epoch in range(1, cfg.epochs):
         try:
@@ -178,6 +180,9 @@ def main(cfg: sk.Config):
             logger.info(
                 f"New best dev loss!!! ({best_mean_dev_loss} -> {mean_dev_loss})")
             best_mean_dev_loss = mean_dev_loss
+            bad_epochs = 0
+        else:
+            bad_epochs += 1
 
         sample = generate(
             model,
@@ -192,6 +197,21 @@ def main(cfg: sk.Config):
             f"[EPOCH {epoch}]:\n{sample}\n", save_name="samples.txt")
 
         print(f"{f'':-^{terminal_width}}\n")
+
+        if bad_epochs >= cfg.patience:
+            logger.warning(
+                f"Bad epochs exceeded your patience of {cfg.patience}, exiting.")
+            break
+
+    logger.log_artifact(json.dumps(
+            {
+                'train_losses': train_losses,
+                'dev_losses': dev_losses,
+            },
+        ),
+        "dev_losses.json",
+    )
+    logger.clean_up()
 
 
 if __name__ == "__main__":

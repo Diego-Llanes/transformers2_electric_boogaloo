@@ -1,0 +1,6 @@
+model:
+  _target_: models.lstm.LSTM
+  n_embd: 64
+  hidden_size: 128
+  num_layers: 2
+  dropout: 0.0

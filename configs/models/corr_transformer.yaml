@@ -1,0 +1,14 @@
+model:
+  _target_: models.correction_transformer.CorrectionTransformer
+  vocab_size: 30000
+  seq_len: 300
+  cls_n_layers: 2
+  cls_n_heads: 2
+  cls_emb_dim: 64
+  cls_ff_dim: 128
+  rep_n_layers: 4
+  rep_n_heads: 8
+  rep_emb_dim: 256
+  rep_ff_dim: 512
+  dropout: 0.1
+  mask_token_id: 103      # (BERT’s [MASK] id; or tokenizer.mask_token_id)

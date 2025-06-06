@@ -12,15 +12,16 @@ import os
 import json
 
 from runner import LanguageRunner, LevenshteinRunner, InsertionRunner, CorrectionRunner
-from utils import TASK_TO_OBJECTIVE_FN
+from utils import TASK_TO_OBJECTIVE_FN, compute_token_accuracy_and_ppl, compute_bleu_and_rouge
 from viz import generate
 from logger import LoggerProtocol, get_logger
 
 import sys
 
-# Make things print faster
+# Make python print unbuffered
 STD_OUT = sys.stdout
 sys.stdout = sys.stderr
+
 
 
 @sk.unlock(str(Path(__file__).parent.parent / "configs" / "config.yaml"))
@@ -171,10 +172,24 @@ def main(cfg: sk.Config):
         logger.info(f"{mean_dev_loss=}")
         scheduler.step(mean_dev_loss)
 
-        logger.log_metrics({
+        dev_acc, dev_ppl = compute_token_accuracy_and_ppl(model, dev_dl, device)
+        dev_bleu, dev_rouge = compute_bleu_and_rouge(
+            model, dev_dl, dataset.tokenizer, device,
+            num_samples=cfg.eval_samples,
+            max_len=20,
+            temperature=cfg.sample_temperature
+        )
+
+        metrics = {
             "mean_train_loss": mean_train_loss,
             "mean_dev_loss": mean_dev_loss,
-        })
+
+            "dev_token_accuracy": dev_acc,
+            "dev_perplexity": dev_ppl,
+            "dev_bleu": dev_bleu,
+            "dev_rougeL": dev_rouge,
+        }
+        logger.log_metrics(metrics)
 
         if mean_dev_loss < best_mean_dev_loss:
             logger.info(

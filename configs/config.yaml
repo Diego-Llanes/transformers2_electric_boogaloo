@@ -23,6 +23,7 @@ epochs: 100
 sample_temperature: 0.8
 corruption_prob: 0.15
 patience: 20
+eval_samples: 5
 
 # --- Logging ---
 logger: console

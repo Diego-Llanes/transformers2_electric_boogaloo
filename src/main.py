@@ -42,9 +42,6 @@ def main(cfg: sk.Config):
         **model_kwargs
     )
 
-    # if cfg.logger == "wandb":
-    #     wandb.watch(model, log="all", log_freq=100)
-
     # make the dataset small if we are debugging
     if sum(cfg.split_percentages) != 1.0:
         def softmax(x: list[float]) -> list[float]:
@@ -171,23 +168,23 @@ def main(cfg: sk.Config):
         logger.info(f"{mean_dev_loss=}")
         scheduler.step(mean_dev_loss)
 
-        dev_acc, dev_ppl = compute_token_accuracy_and_ppl(
-            model, dev_dl, device)
-        dev_bleu, dev_rouge = compute_bleu_and_rouge(
-            model, dev_dl, dataset.tokenizer, device,
-            num_samples=cfg.eval_samples,
-            max_len=20,
-            temperature=cfg.sample_temperature
-        )
+        # dev_acc, dev_ppl = compute_token_accuracy_and_ppl(
+        #     model, dev_dl, device)
+        # dev_bleu, dev_rouge = compute_bleu_and_rouge(
+        #     model, dev_dl, dataset.tokenizer, device,
+        #     num_samples=cfg.eval_samples,
+        #     max_len=20,
+        #     temperature=cfg.sample_temperature
+        # )
 
         metrics = {
             "mean_train_loss": mean_train_loss,
             "mean_dev_loss": mean_dev_loss,
 
-            "dev_token_accuracy": dev_acc,
-            "dev_perplexity": dev_ppl,
-            "dev_bleu": dev_bleu,
-            "dev_rougeL": dev_rouge,
+            # "dev_token_accuracy": dev_acc,
+            # "dev_perplexity": dev_ppl,
+            # "dev_bleu": dev_bleu,
+            # "dev_rougeL": dev_rouge,
         }
         logger.log_metrics(metrics)
 
@@ -195,9 +192,15 @@ def main(cfg: sk.Config):
             logger.info(
                 f"New best dev loss!!! ({best_mean_dev_loss} -> {mean_dev_loss})")
             best_mean_dev_loss = mean_dev_loss
+            # Save weights on new best
+            best_path = Path(logger.log_dir) / "best_model.pth"
+            torch.save(model.state_dict(), best_path)
+            logger.log_artifact(str(best_path), save_name="best_model.pth")
             bad_epochs = 0
         else:
             bad_epochs += 1
+
+        model = model.to('cpu')
 
         sample = generate(
             model,
@@ -219,6 +222,7 @@ def main(cfg: sk.Config):
             logger.warning(
                 f"Bad epochs exceeded your patience of {cfg.patience}, exiting.")
             break
+        model = model.to(device)
 
     logger.log_artifact(json.dumps(
         {

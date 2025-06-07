@@ -37,8 +37,8 @@ wandb_entity: diegollanes
 split_percentages: [0.8, 0.1, 0.1]
 dataset:
   _target_: dataset.dataset.TinyLanguageDataset
-  # txt_path: "data/frankenstien.txt"
-  txt_path: "data/gutenberg_top100_cleaned/"
+  txt_path: "data/frankenstien.txt"
+  # txt_path: "data/gutenberg_top100_cleaned/"
   seq_len: 300
   stride: 20
 

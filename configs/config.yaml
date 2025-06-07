@@ -18,7 +18,7 @@ profiles:
 
 # --- General ---
 bs: 10
-epochs: 100
+epochs: 100_000 # just go until patience exceeded
 ?debug: false  # tip: use "--debug" on the command line to set this
 sample_temperature: 0.8
 corruption_prob: 0.15
@@ -29,14 +29,16 @@ eval_samples: 5
 logger: console
 logdir: logs
 run_name: debug
-experiment: transformer
+experiment: NLP Final Project
+
+wandb_entity: diegollanes
 
 # --- Dataset ---
 split_percentages: [0.8, 0.1, 0.1]
 dataset:
   _target_: dataset.dataset.TinyLanguageDataset
-  txt_path: "data/frankenstien.txt"
-  # txt_path: "data/gutenberg_top100_cleaned/"
+  # txt_path: "data/frankenstien.txt"
+  txt_path: "data/gutenberg_top100_cleaned/"
   seq_len: 300
   stride: 20
 

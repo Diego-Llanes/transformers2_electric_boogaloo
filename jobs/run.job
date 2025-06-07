@@ -10,5 +10,5 @@ output=/research/hutchinson/workspace/fettigj/transformers2_electric_boogaloo/lo
 error =/research/hutchinson/workspace/fettigj/transformers2_electric_boogaloo/logs/condor_logs/err.$(args).$(procid).txt
 log   =/research/hutchinson/workspace/fettigj/transformers2_electric_boogaloo/logs/condor_logs/condor.log
 
-max_idle=20
-queue 20
+max_idle = 1
+queue 10

@@ -1,5 +1,6 @@
 logs/*
 data/gutenberg_top100*
+wandb
 
 # --- Default Python Gitignore ---
 

@@ -10,6 +10,7 @@ import json
 from typing import Protocol, Any
 import logging
 from pathlib import Path
+import os
 
 
 class LoggerProtocol(Protocol):
@@ -29,10 +30,11 @@ class _DelegatingLogger:
         # if this wrapper doesn't define it, fall back to the real internal logger object
         return getattr(self._logger, name)
 
+
 class WandbWrapper(_DelegatingLogger, LoggerProtocol):
-    def __init__(self, logger: logging.Logger, run_name: str, experiment: str):
+    def __init__(self, logger: logging.Logger, run_name: str, experiment: str, wandb_entity: str = None):
         self._logger = logger
-        wandb.init(name=run_name, project=experiment)
+        wandb.init(name=run_name, project=experiment, entity=wandb_entity)
 
     def log_metrics(self, metrics: dict, step: int = None) -> None:
         wandb.log(metrics, step=step)
@@ -42,9 +44,10 @@ class WandbWrapper(_DelegatingLogger, LoggerProtocol):
         wandb.config.update(params)
         self._logger.info("Parameters logged")
 
-    def log_artifact(self, artifact: str) -> None:
-        wandb.log_artifact(artifact)
-        self._logger.info("Artifact logged: %s", type(artifact))
+    def log_artifact(self, content: str, save_name: str = "artifact.txt") -> None:
+        wandb.log({save_name: wandb.Html(content)})
+        self._logger.info(
+            f"Artifact logged: '{type(content)}' saved to '{save_name}'")
 
     def log_figure(self, figure, name: str) -> None:
         wandb.log({name: figure})
@@ -95,7 +98,8 @@ class ConsoleWrapper(_DelegatingLogger, LoggerProtocol):
     def log_artifact(self, artifact: str, save_name='artifact.txt') -> None:
         with open(f"{self.log_dir}/{save_name}", "a") as f:
             f.write(artifact)
-        self._logger.info(f"Artifact logged: '{type(artifact)}' saved to '{save_name}'")
+        self._logger.info(
+            f"Artifact logged: '{type(artifact)}' saved to '{save_name}'")
 
     def log_figure(self, figure, name: str) -> None:
         if not (self.log_dir / "figs").exists():
@@ -212,8 +216,8 @@ def get_logger(config: sk.Config,) -> LoggerProtocol:
 
     if config.debug:
         config.run_name = 'debug'
-        return ConsoleWrapper(logger, config.logdir, config.run_name)
-    #     return DebugWrapper(logger)
+        # return ConsoleWrapper(logger, config.logdir, config.run_name)
+        # return DebugWrapper(logger)
 
     match config.logger:
         case "tensorboard":
@@ -223,7 +227,7 @@ def get_logger(config: sk.Config,) -> LoggerProtocol:
         case "console":
             return ConsoleWrapper(logger, config.logdir, config.run_name)
         case "wandb":
-            return WandbWrapper(logger, config.run_name, config.experiment)
+            return WandbWrapper(logger, config.run_name, config.experiment, config.wandb_entity)
         case "debug":
             return DebugWrapper(logger)
         case _:

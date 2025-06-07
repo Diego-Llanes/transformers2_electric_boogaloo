@@ -73,7 +73,6 @@ class LevenshteinRunner:
         mask_prob: float = 0.15,
     ) -> None:
         self.model = model.to(device)
-        # not used directly for LevT, but kept for interface
         self.objective_fn = objective_fn
         self.loader = dataloader
         self.device = torch.device(device)
@@ -205,7 +204,6 @@ class InsertionRunner:
         return cum_loss / batches, losses
 
 
-
 class CorrectionRunner:
     def __init__(
         self,
@@ -242,8 +240,10 @@ class CorrectionRunner:
                 B, T = x.size()
 
                 # 1) Randomly corrupt some tokens
-                corrupt_mask = (torch.rand((B, T), device=self.device) < self.corruption_prob)
-                rand_tokens = torch.randint(0, self.model.vocab_size, (B, T), device=self.device)
+                corrupt_mask = (torch.rand(
+                    (B, T), device=self.device) < self.corruption_prob)
+                rand_tokens = torch.randint(
+                    0, self.model.vocab_size, (B, T), device=self.device)
                 corrupted = x.clone()
                 corrupted[corrupt_mask] = rand_tokens[corrupt_mask]
 
@@ -258,19 +258,22 @@ class CorrectionRunner:
                 rep_labels = x.clone()
                 rep_labels[~corrupt_mask] = -100
                 # Append a dummy class for the appended token → ignore index
-                rep_labels = torch.cat([rep_labels, torch.full((B,1), -100, device=self.device, dtype=torch.long)], dim=1)  # (B, T+1)
+                rep_labels = torch.cat([rep_labels, torch.full(
+                    (B, 1), -100, device=self.device, dtype=torch.long)], dim=1)  # (B, T+1)
 
                 if is_train:
                     self.optimizer.zero_grad()
 
-                cls_logits, rep_logits = self.model(rep_input)  # cls: (B,T), rep: (B, T+1, V)
+                cls_logits, rep_logits = self.model(
+                    rep_input)  # cls: (B,T), rep: (B, T+1, V)
 
                 # Classification loss
                 loss_cls = self.bce_loss(cls_logits, cls_labels)
 
                 # Replacement loss – flatten
                 Bp, Tp1, V = rep_logits.size()
-                loss_rep = self.ce_loss(rep_logits.view(Bp*Tp1, V), rep_labels.view(Bp*Tp1))
+                loss_rep = self.ce_loss(rep_logits.view(
+                    Bp*Tp1, V), rep_labels.view(Bp*Tp1))
 
                 loss = loss_cls + loss_rep
                 if is_train:

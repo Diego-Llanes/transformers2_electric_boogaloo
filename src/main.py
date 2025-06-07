@@ -23,7 +23,6 @@ STD_OUT = sys.stdout
 sys.stdout = sys.stderr
 
 
-
 @sk.unlock(str(Path(__file__).parent.parent / "configs" / "config.yaml"))
 def main(cfg: sk.Config):
 
@@ -43,8 +42,8 @@ def main(cfg: sk.Config):
         **model_kwargs
     )
 
-    if cfg.logger == "wandb":
-        wandb.watch(model, log="all", log_freq=100)
+    # if cfg.logger == "wandb":
+    #     wandb.watch(model, log="all", log_freq=100)
 
     # make the dataset small if we are debugging
     if sum(cfg.split_percentages) != 1.0:
@@ -172,7 +171,8 @@ def main(cfg: sk.Config):
         logger.info(f"{mean_dev_loss=}")
         scheduler.step(mean_dev_loss)
 
-        dev_acc, dev_ppl = compute_token_accuracy_and_ppl(model, dev_dl, device)
+        dev_acc, dev_ppl = compute_token_accuracy_and_ppl(
+            model, dev_dl, device)
         dev_bleu, dev_rouge = compute_bleu_and_rouge(
             model, dev_dl, dataset.tokenizer, device,
             num_samples=cfg.eval_samples,
@@ -209,7 +209,9 @@ def main(cfg: sk.Config):
         )
         print(f"Sample generation: {sample}")
         logger.log_artifact(
-            f"[EPOCH {epoch}]:\n{sample}\n", save_name="samples.txt")
+            f"[EPOCH {epoch}]:\n{sample}\n",
+            save_name=f"samples.txt"
+        )
 
         print(f"{f'':-^{terminal_width}}\n")
 
@@ -219,11 +221,11 @@ def main(cfg: sk.Config):
             break
 
     logger.log_artifact(json.dumps(
-            {
-                'train_losses': train_losses,
-                'dev_losses': dev_losses,
-            },
-        ),
+        {
+            'train_losses': train_losses,
+            'dev_losses': dev_losses,
+        },
+    ),
         "dev_losses.json",
     )
     logger.clean_up()

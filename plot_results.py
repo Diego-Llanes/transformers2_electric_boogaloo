@@ -66,5 +66,48 @@ def plot_losses_and_perplexities(logs_root: str = "logs", save_dir: str = None):
         plt.show()
 
 
-# Call the plotting function
-plot_losses_and_perplexities("logs", "figs/")
+def summarize_perplexities(logs_root: str = "logs"):
+    logs_path = Path(logs_root)
+    metrics_files = list(logs_path.glob("*_sweep*/*metrics.csv"))
+    if not metrics_files:
+        raise FileNotFoundError(f"No metrics.csv under {logs_root}")
+
+    # collect all runs
+    dfs = []
+    for mf in metrics_files:
+        df = pd.read_csv(mf)
+        if "epoch" not in df.columns:
+            df = df.rename(columns={df.columns[0]: "epoch"})
+        model = mf.parent.name.split("_sweep")[0]
+        df = df.assign(
+            model_name=model,
+            train_ppl=np.exp(df["mean_train_loss"]),
+            dev_ppl=np.exp(df["mean_dev_loss"])
+        )
+        dfs.append(df[["epoch", "model_name", "train_ppl", "dev_ppl"]])
+    all_df = pd.concat(dfs, ignore_index=True)
+
+    # pick the final epoch for each model
+    out = []
+    for model, grp in all_df.groupby("model_name"):
+        last = grp.loc[grp["epoch"].idxmax()]
+        run_vals = grp[grp["epoch"] == last["epoch"]]
+        out.append({
+            "model_name": model,
+            "epoch":     int(last["epoch"]),
+            "train_ppl_mean":     run_vals["train_ppl"].mean(),
+            "train_ppl_median":   run_vals["train_ppl"].median(),
+            "train_ppl_variance": run_vals["train_ppl"].var(),
+            "dev_ppl_mean":       run_vals["dev_ppl"].mean(),
+            "dev_ppl_median":     run_vals["dev_ppl"].median(),
+            "dev_ppl_variance":   run_vals["dev_ppl"].var(),
+        })
+
+    return pd.DataFrame(out)
+
+
+if __name__ == "__main__":
+    summary_df = summarize_perplexities("logs")
+    print(summary_df.to_markdown(index=False))
+    # Call the plotting function
+    plot_losses_and_perplexities("logs", "figs/")

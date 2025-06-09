@@ -66,7 +66,46 @@ class TinyLanguageDataset(Dataset):
         return subsets
 
 
+def get_ds_stats():
+    from pathlib import Path
+    import pandas as pd
+
+    data_path = Path(__file__).parent.parent.parent / \
+        "data" / "gutenberg_top100_cleaned"
+    seq_len = 128
+
+    ds = TinyLanguageDataset(data_path, seq_len=seq_len)
+    train_ds, dev_ds, test_ds = ds.split([0.8, 0.1, 0.1])
+
+    total = len(ds.ids)
+    cut1 = int(0.8 * total)
+    cut2 = int(0.9 * total)
+
+    splits = {
+        "Train": (ds.ids[:cut1], train_ds),
+        "Dev":   (ds.ids[cut1:cut2], dev_ds),
+        "Test":  (ds.ids[cut2:], test_ds),
+    }
+
+    rows = []
+    for name, (tokens, subset) in splits.items():
+        rows.append({
+            "Split": name,
+            "Num_Tokens": len(tokens),
+            "Num_Sequences": len(subset),
+            "Unique_Tokens": len(set(tokens)),
+        })
+
+    df = pd.DataFrame(rows)
+    print(df.to_markdown(index=False))
+
+
 if __name__ == "__main__":
+    import sys
+
+    get_ds_stats()
+    sys.exit(0)
+
     import random
 
     frankenstien_path = Path(

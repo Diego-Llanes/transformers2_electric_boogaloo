@@ -7,7 +7,7 @@ from pathlib import Path
 def plot_losses_and_perplexities(logs_root: str = "logs", save_dir: str = None):
     logs_path = Path(logs_root)
     # find all metrics.csv under directories matching *_sweep*
-    metrics_files = list(logs_path.glob("*_sweep*/*metrics.csv"))
+    metrics_files = list(logs_path.glob("*FINAL*/*metrics.csv"))
     if not metrics_files:
         print(f"No metrics.csv found under {logs_root}")
         return
@@ -68,7 +68,8 @@ def plot_losses_and_perplexities(logs_root: str = "logs", save_dir: str = None):
 
 def summarize_perplexities(logs_root: str = "logs"):
     logs_path = Path(logs_root)
-    metrics_files = list(logs_path.glob("*_sweep*/*metrics.csv"))
+    metrics_files = list(logs_path.glob("*FINAL*/*metrics.csv"))
+
     if not metrics_files:
         raise FileNotFoundError(f"No metrics.csv under {logs_root}")
 

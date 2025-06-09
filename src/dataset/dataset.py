@@ -99,11 +99,50 @@ def get_ds_stats():
     df = pd.DataFrame(rows)
     print(df.to_markdown(index=False))
 
+def get_miou():
+    from pathlib import Path
+    import pandas as pd
+
+    data_path = Path(__file__).parent.parent.parent / "data" / "gutenberg_top100_cleaned"
+    seq_len = 128
+
+    ds = TinyLanguageDataset(data_path, seq_len=seq_len)
+    train_ds, dev_ds, test_ds = ds.split([0.8, 0.1, 0.1])
+
+    total = len(ds.ids)
+    cut1 = int(0.8 * total)
+    cut2 = int(0.9 * total)
+
+    splits = {
+        "Train": ds.ids[:cut1],
+        "Dev":   ds.ids[cut1:cut2],
+        "Test":  ds.ids[cut2:],
+    }
+
+    unique_tokens = {name: set(tokens) for name, tokens in splits.items()}
+
+    pairs = [("Train", "Dev"), ("Train", "Test"), ("Dev", "Test")]
+    rows = []
+    for a, b in pairs:
+        inter = len(unique_tokens[a] & unique_tokens[b])
+        union = len(unique_tokens[a] | unique_tokens[b])
+        rows.append({
+            "Pair": f"{a}-{b}",
+            "Intersection": inter,
+            "Union": union,
+            "IoU": inter / union,
+        })
+
+    df = pd.DataFrame(rows)
+    print(df.to_markdown(index=False))
+
+    print(f"\nMean IoU: {df['IoU'].mean():.4f}")
 
 if __name__ == "__main__":
     import sys
 
-    get_ds_stats()
+    # get_ds_stats()
+    get_miou()
     sys.exit(0)
 
     import random

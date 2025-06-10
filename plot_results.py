@@ -110,5 +110,4 @@ def summarize_perplexities(logs_root: str = "logs"):
 if __name__ == "__main__":
     summary_df = summarize_perplexities("logs")
     print(summary_df.to_markdown(index=False))
-    # Call the plotting function
     plot_losses_and_perplexities("logs", "figs/")

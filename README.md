@@ -1,6 +1,6 @@
 # Transformers 2 Electric Boogaloo
 
-A benchmarking suite for our new model the <emph>the corrective tranf</emph>
+A benchmarking suite for our new model the ***The Corrective Transformer***, by comparison to the Levenshtein Transformer, Insertion Transformer, Vanilla Transformer, GRU, LSTM, RNN.
 
 ## Features
 
